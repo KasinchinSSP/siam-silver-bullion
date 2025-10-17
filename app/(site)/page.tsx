@@ -9,15 +9,7 @@ type LatestResp = {
 
 async function getLatest(): Promise<LatestResp | null> {
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/api/pricing/latest`,
-      {
-        // ถ้าไม่มี NEXT_PUBLIC_BASE_URL, Next.js จะใช้ internal fetch ได้ตอนรันบน server
-        // ใน dev/preview ส่วนใหญ่ fetch('/api/...') ก็เพียงพอ:
-        // next: { revalidate: 30 } // อีกทางเลือก
-        cache: "no-store",
-      }
-    );
+    const res = await fetch("/api/pricing/latest", { cache: "no-store" });
     if (!res.ok) return null;
     return res.json();
   } catch {
