@@ -5,14 +5,13 @@ export const dynamic = "force-dynamic";
 
 async function fetchLatest() {
   try {
-    const h = headers();
+    const h = await headers();
     const host = h.get("x-forwarded-host") ?? h.get("host");
     const proto = h.get("x-forwarded-proto") ?? "https";
     const url = `${proto}://${host}/api/pricing/latest`;
 
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) {
-      // โยนรายละเอียดไว้ดูบนหน้าจอ
       return { __error: `HTTP ${res.status} ${res.statusText}`, __url: url };
     }
     return res.json();
