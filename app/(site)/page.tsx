@@ -1,68 +1,37 @@
-export const revalidate = 30; // ให้หน้า Home รีเฟรชข้อมูลได้บ้าง
+// app/(site)/page.tsx
+import PricingHero from "@/components/PricingHero";
 
-type LatestResp = {
-  effective_date: string;
-  run_no: number;
-  updated_at: string;
-  ui: { mode_badge: string; timestamp_label: string; disclaimer: string };
+// --- MOCK DATA (เดโม่) ---
+const MOCK = {
+  header: {
+    companyTh: "บริษัท สยาม ซิลเวอร์ บูลเลียน จำกัด",
+    companyEn: "Siam Silver Bullion Co., Ltd.",
+    effectiveDateText: "วันที่ 18 ตุลาคม 2568",
+    timeText: "อัปเดตล่าสุด 02:32:08 น.",
+    runNo: 20,
+  },
+  main: {
+    buy: 57700,
+    sell: 58100,
+    total: 62167,
+  },
+  list: {
+    title: "Bowins Design",
+    items: [
+      { label: "15 กรัม", priceInclVat: 1150 },
+      { label: "50 กรัม", priceInclVat: 3480 },
+      { label: "150 กรัม", priceInclVat: 9590 },
+    ],
+  },
+  footnote: {
+    effectiveDateText: "อิงข้อมูลของวันที่ 17 ตุลาคม 2568 (T‑1)",
+  },
 };
 
-async function getLatest(): Promise<LatestResp | null> {
-  try {
-    const res = await fetch("/api/pricing/latest", { cache: "no-store" });
-    if (!res.ok) return null;
-    return res.json();
-  } catch {
-    return null;
-  }
-}
-
-export default async function HomePage() {
-  const latest = await getLatest();
-
+export default function HomePage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
-      <h1 className="text-2xl font-semibold">
-        บริษัท สยาม ซิลเวอร์ บูลเลียน จำกัด
-      </h1>
-      <p className="mt-1 text-sm text-gray-500">
-        Siam Silver Bullion Co., Ltd.
-      </p>
-
-      <div className="mt-6 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm">
-        <span>🔧</span>
-        <span>
-          {latest?.ui.mode_badge ?? "โหมดสาธิต – แสดงราคาย้อนหลัง (T-1)"}
-        </span>
-      </div>
-
-      <div className="mt-6 space-y-2 text-sm">
-        {latest ? (
-          <>
-            <div>
-              <span className="font-medium">{latest.ui.timestamp_label}:</span>{" "}
-              {new Date(latest.updated_at).toLocaleString("th-TH")}
-              {"  "}
-              <span className="text-gray-500"> (ครั้งที่ {latest.run_no})</span>
-            </div>
-            <div className="text-gray-600">{latest.ui.disclaimer}</div>
-          </>
-        ) : (
-          <div className="text-red-600">
-            ยังดึงข้อมูลล่าสุดไม่ได้ — ลองรีเฟรชอีกครั้ง หรือเช็ก API
-            /api/pricing/latest
-          </div>
-        )}
-      </div>
-
-      <div className="mt-8">
-        <a
-          href="/pricing-demo"
-          className="inline-flex items-center rounded-md border px-4 py-2 text-sm hover:bg-gray-50"
-        >
-          ดูข้อมูล JSON สด ๆ (pricing-demo)
-        </a>
-      </div>
+    <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+      <PricingHero {...MOCK} />
     </main>
   );
 }
