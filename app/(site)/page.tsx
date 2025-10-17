@@ -1,4 +1,3 @@
-// app/(site)/page.tsx
 export const revalidate = 30; // ให้หน้า Home รีเฟรชข้อมูลได้บ้าง
 
 type LatestResp = {
