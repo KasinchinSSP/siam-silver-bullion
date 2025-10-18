@@ -27,17 +27,13 @@ export async function POST(req: Request) {
     const supabase = getSupabaseService();
     const env = readEnv();
 
-    // effective_date = วันนี้ (ICT) สำหรับโหมด latest
     const effective_date = todayICTISO();
 
-    // 1) ดึง metal latest (XAGUSD)
     const xagusd = await getXagUsdLatest();
 
-    // 2) ดึง FX ล่าสุด (USDTHB)
     const fx = await getUsdThbLatest();
     const usd_thb = fx.value;
 
-    // 3) สินค้า active
     const { data: products, error: prodErr } = await supabase
       .from("products")
       .select("sku,title,purity,weight_oz,weight_g,premium_per_oz_thb")
@@ -56,7 +52,6 @@ export async function POST(req: Request) {
       env,
     });
 
-    // 5) หา run ล่าสุดของวันนี้
     const { data: runs } = await supabase
       .from("price_snapshots")
       .select("run_no")
@@ -67,7 +62,6 @@ export async function POST(req: Request) {
 
     const nextRun = runs && runs.length > 0 ? Number(runs[0].run_no) + 1 : 1;
 
-    // 6) บันทึก snapshot
     const payload = {
       effective_date,
       xagusd_close: xagusd,
