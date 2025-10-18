@@ -21,3 +21,11 @@ export async function getUsdThbLatest(): Promise<{
   const mock = Number(process.env.MOCK_USD_THB_LATEST ?? 36.7);
   return { value: mock, provider: "mock" };
 }
+
+// ---- shim: old API compatibility (T-1) ----
+export async function getUsdThbT1(
+  _dateISO?: string
+): Promise<{ value: number; provider: "bot" | "mock" }> {
+  // ใช้ latest ชั่วคราว เพื่อให้ route เก่า base-t1 ยัง build ผ่าน
+  return getUsdThbLatest();
+}
