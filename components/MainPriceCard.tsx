@@ -42,7 +42,7 @@ export default function MainPriceCard({
 
       {/* Total incl VAT */}
       {typeof totalInclVat === "number" && (
-        <div className="pointer-events-none absolute bottom-3 right-4 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-900 shadow">
+        <div className="hidden pointer-events-none absolute bottom-3 right-4 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-900 shadow">
           ราคารวม VAT 7% : {formatTHBInt(totalInclVat)} บาท
         </div>
       )}
