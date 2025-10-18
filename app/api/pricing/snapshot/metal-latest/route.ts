@@ -8,6 +8,27 @@ import { todayICTISO } from "@/lib/time";
 import { getXagUsdLatest } from "@/lib/providers/metalprice";
 import { getUsdThbLatest } from "@/lib/providers/fx";
 
+// อ่าน snapshot วันนี้เพื่อตรวจสอบว่ามี usd_thb แล้วหรือไม่
+const { data: todayLatest } = await supabase
+  .from("price_snapshots")
+  .select("usd_thb, run_no")
+  .eq("effective_date", effective_date)
+  .eq("is_demo", true)
+  .order("run_no", { ascending: false })
+  .limit(1);
+
+let usd_thb: number;
+if (
+  todayLatest &&
+  todayLatest.length > 0 &&
+  Number(todayLatest[0].usd_thb) > 0
+) {
+  usd_thb = Number(todayLatest[0].usd_thb);
+} else {
+  const fx = await getUsdThbLatest();
+  usd_thb = fx.value;
+}
+
 function isAuthorized(req: Request) {
   const admin = process.env.ADMIN_TOKEN;
   const h = req.headers;

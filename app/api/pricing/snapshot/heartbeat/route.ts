@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     // 1) อ่าน snapshot ล่าสุดของวันนี้ เพื่อใช้ค่า metal (xagusd_close) ล่าสุด
     const { data: lastSnap, error: qErr } = await supabase
       .from("price_snapshots")
-      .select("xagusd_close")
+      .select("xagusd_close, usd_thb")
       .eq("effective_date", effective_date)
       .eq("is_demo", true)
       .order("run_no", { ascending: false })
@@ -51,10 +51,8 @@ export async function POST(req: Request) {
       );
 
     const xagusd = Number(lastSnap.xagusd_close);
-
-    // 2) ดึง FX ล่าสุด (USDTHB)
+    const usd_thb = Number(lastSnap.usd_thb);
     const fx = await getUsdThbLatest();
-    const usd_thb = fx.value;
 
     // 3) โหลดสินค้า active
     const { data: products, error: prodErr } = await supabase
