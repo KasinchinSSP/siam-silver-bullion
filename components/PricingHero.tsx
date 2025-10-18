@@ -4,6 +4,8 @@ import PriceHeader from "./PriceHeader";
 import MainPriceCard from "./MainPriceCard";
 import ProductPriceList, { ProductItem } from "./ProductPriceList";
 import Footnote from "./Footnote";
+import LoadingSkeleton from "./LoadingSkeleton";
+import ErrorCard from "./ErrorCard";
 
 export type PricingHeroProps = {
   header: {
@@ -16,6 +18,8 @@ export type PricingHeroProps = {
   main: { buy: number; sell: number; total?: number };
   list: { title?: string; items: ProductItem[] };
   footnote: { effectiveDateText: string; disclaimer?: string };
+  state?: "ready" | "loading" | "error";
+  errorMessage?: string;
 };
 
 export default function PricingHero({
