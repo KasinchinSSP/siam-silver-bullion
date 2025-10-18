@@ -19,8 +19,11 @@ const MOCK = {
 };
 
 export default async function HomePage() {
-  const h = headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const h = await headers();
+  const host =
+    h.get("x-forwarded-host") ??
+    h.get("host") ??
+    "siam-silver-bullion.vercel.app";
   const proto = h.get("x-forwarded-proto") ?? "https";
   const url = `${proto}://${host}/api/pricing/latest`;
 
@@ -48,7 +51,6 @@ export default async function HomePage() {
   const timeText = data.ui?.timeTh ?? data.updated_at ?? "—";
   const runNo = Number(data.run_no ?? 0);
 
-  // เลือก SKU หลัก (ถ้ามี 1kg ใช้อันนั้น มิฉะนั้นใช้ตัวแรก)
   const prices: any[] = Array.isArray(data.prices) ? data.prices : [];
   const pick = prices.find((p) => p.sku === "BAR-1KG-9999") ||
     prices[0] || { buy_incl_vat: 0, sell_incl_vat: 0 };
@@ -73,7 +75,7 @@ export default async function HomePage() {
     },
     list: { title: "SSB Products", items: listItems },
     footnote: { effectiveDateText: data.ui?.t1NoteTh ?? "" },
-  };
+  } as const;
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
