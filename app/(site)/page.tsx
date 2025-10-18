@@ -16,7 +16,7 @@ const MOCK = {
     total: 62167,
   },
   list: {
-    title: "Bowins Design",
+    title: "SSB Products",
     items: [
       { label: "15 กรัม", priceInclVat: 1150 },
       { label: "50 กรัม", priceInclVat: 3480 },
