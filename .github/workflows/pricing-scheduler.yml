@@ -1,0 +1,54 @@
+name: Pricing Scheduler (Metal 3/day + FX 30m)
+
+on:
+  schedule:
+    # Heartbeat ทุก 30 นาที ช่วง 02:00–14:59 UTC (= 09:00–21:59 ICT)
+    - cron: "*/30 2-14 * * *"
+    # กันพลาด: ให้มีรอบเจาะจงเพิ่ม metal-latest ที่เวลาเป๊ะ (UTC)
+    - cron: "30 2 * * *"   # 09:30 ICT
+    - cron: "0 6 * * *"    # 13:00 ICT
+    - cron: "0 10 * * *"   # 17:00 ICT
+  workflow_dispatch: {}
+
+jobs:
+  run-schedule:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: pricing-scheduler
+      cancel-in-progress: false
+
+    steps:
+      - name: Show UTC time
+        run: |
+          date -u
+
+      - name: Decide & call APIs
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+        shell: bash
+        run: |
+          set -e
+
+          H=$(date -u +%H)
+          M=$(date -u +%M)
+          echo "UTC now: ${H}:${M}"
+
+          # เงื่อนไขเรียก metal-latest เฉพาะ 02:30, 06:00, 10:00 UTC (ตรงกับ 09:30, 13:00, 17:00 ICT)
+          if { [ "$H" = "02" ] && [ "$M" = "30" ]; } || \
+             { [ "$H" = "06" ] && [ "$M" = "00" ]; } || \
+             { [ "$H" = "10" ] && [ "$M" = "00" ]; }; then
+            echo "Calling metal-latest (XAGUSD latest + USDTHB latest)"
+            curl -sS -X POST "$BASE_URL/api/pricing/snapshot/metal-latest" \
+              -H "x-admin-token: $ADMIN_TOKEN"
+            echo
+          else
+            echo "Skip metal-latest (not on the 3 exact UTC times)"
+          fi
+
+          # เรียก heartbeat ทุกครั้งที่ workflow ติด schedule ในช่วง 02–14 UTC
+          echo "Calling heartbeat (recalc with latest FX)"
+          curl -sS -X POST "$BASE_URL/api/pricing/snapshot/heartbeat" \
+            -H "x-admin-token: $ADMIN_TOKEN"
+          echo
