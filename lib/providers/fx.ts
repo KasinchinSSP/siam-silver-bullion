@@ -1,14 +1,23 @@
 // lib/providers/fx.ts
+import { getUsdThbLatestFromBOT } from "./fx-bot";
+
 /**
- * ชั่วคราว: ใช้ MOCK_USD_THB_T1 ระหว่างรอ BOT API
- * อนาคต: เพิ่ม getUsdThbT1FromBOT(dateISO) แล้วสลับมาใช้จริง
+ * อ่าน FX ล่าสุดตาม provider
+ * - FX_PROVIDER=bot  → ใช้ BOT
+ * - FX_PROVIDER=mock → ใช้ค่า mock (สำหรับทดสอบ)
  */
-export async function getUsdThbT1(
-  dateISO: string
-): Promise<{ value: number; provider: "mock" | "bot" }> {
-  const mock = process.env.MOCK_USD_THB_T1;
-  const val = Number(mock ?? 0);
-  if (val > 0) return { value: val, provider: "mock" };
-  // fallback ปลอดภัย: ค่าคงที่ 36.70 (อย่าลืมตั้ง ENV ทีหลัง)
-  return { value: 36.7, provider: "mock" };
+export async function getUsdThbLatest(): Promise<{
+  value: number;
+  provider: "bot" | "mock";
+}> {
+  const provider = (process.env.FX_PROVIDER || "bot").toLowerCase();
+
+  if (provider === "bot") {
+    const v = await getUsdThbLatestFromBOT();
+    return { value: v, provider: "bot" };
+  }
+
+  // mock fallback (ทดสอบเท่านั้น)
+  const mock = Number(process.env.MOCK_USD_THB_LATEST ?? 36.7);
+  return { value: mock, provider: "mock" };
 }
