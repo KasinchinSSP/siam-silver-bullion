@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Siam Silver Bullion Co. Ltd.
 
-## Getting Started
+# FX
 
-First, run the development server:
+FX_PROVIDER=frankfurter
+FX_FALLBACKS=bot,mock
+BOT_API_KEY=xxxxxxxxxxxx
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+# BOT_BASE_URL=... (ถ้ามี)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+# METAL
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+METAL_PROVIDER=metalprice
+METAL_FALLBACKS=mock
+METALPRICE_API_KEY=xxxxxxxxxxxx
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# METALPRICE_BASE_URL=https://api.metalpriceapi.com/v1
 
-## Learn More
+# Mock/Safety
 
-To learn more about Next.js, take a look at the following resources:
+MOCK_USD_THB_LATEST=36.75
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Pricing rules
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+DEFAULT_PREMIUM_PER_OZ_THB=300
+DEFAULT_SPREAD_BUY_SELL=0.02
+DEFAULT_VAT_RATE=0.07
+DEFAULT_ROUNDING_RULE=nearest_10
+APPLY_VAT_ON_BUY=true

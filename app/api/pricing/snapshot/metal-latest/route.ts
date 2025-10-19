@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseService } from "@/lib/supabase-service";
 import { buildPricesBySku, readEnv, type ProductRow } from "@/lib/pricing";
 import { todayICTISO } from "@/lib/time";
-import { getXagUsdLatest } from "@/lib/providers/metalprice";
+import { Metal } from "@/lib/providers/metal";
 import { getUsdThbLatest } from "@/lib/providers/fx";
 
 function isAuthorized(req: Request) {
@@ -27,13 +27,12 @@ export async function POST(req: Request) {
     const supabase = getSupabaseService();
     const env = readEnv();
 
-    // effective_date = วันนี้ (ICT) สำหรับโหมด latest
     const effective_date = todayICTISO();
 
-    // 1) ดึง metal latest (XAGUSD)
-    const xagusd = await getXagUsdLatest();
+    // 1) Metal latest via dispatcher
+    const metal = await Metal.latest();
 
-    // 2) ตรวจว่ามี FX (usd_thb) ของ "วันนี้" แล้วหรือยัง
+    // 2) FX of today – reuse if exists; otherwise fetch latest via dispatcher
     const { data: todayLatest, error: qErr } = await supabase
       .from("price_snapshots")
       .select("usd_thb, run_no")
@@ -50,24 +49,22 @@ export async function POST(req: Request) {
     }
 
     let usd_thb: number;
-    let providersFx: string;
+    let fxProvider: string;
 
     if (
       todayLatest &&
       todayLatest.length > 0 &&
       Number(todayLatest[0].usd_thb) > 0
     ) {
-      // ใช้ค่า FX ที่มีอยู่แล้วใน snapshot ของวันนี้ (ไม่ดึงใหม่)
       usd_thb = Number(todayLatest[0].usd_thb);
-      providersFx = "base:daily";
+      fxProvider = "base:daily";
     } else {
-      // ยังไม่มี FX ประจำวัน → ดึงครั้งแรกของวันจาก provider ที่ตั้งไว้ (frankfurter/mock)
       const fx = await getUsdThbLatest();
       usd_thb = fx.value;
-      providersFx = fx.provider; // 'frankfurter' หรือ 'mock'
+      fxProvider = fx.provider;
     }
 
-    // 3) ดึงสินค้า active
+    // 3) Products
     const { data: products, error: prodErr } = await supabase
       .from("products")
       .select("sku,title,purity,weight_oz,weight_g,premium_per_oz_thb")
@@ -80,15 +77,15 @@ export async function POST(req: Request) {
       );
     }
 
-    // 4) คำนวณราคาต่อ SKU
+    // 4) Build
     const pricesBySku = buildPricesBySku({
       products: (products ?? []) as ProductRow[],
-      xagusdClose: xagusd,
+      xagusdClose: metal.value,
       usdThb: usd_thb,
       env,
     });
 
-    // 5) หา run ล่าสุดของวันนี้ → คำนวณ run ถัดไป
+    // 5) Next run
     const { data: runs } = await supabase
       .from("price_snapshots")
       .select("run_no")
@@ -99,10 +96,10 @@ export async function POST(req: Request) {
 
     const nextRun = runs && runs.length > 0 ? Number(runs[0].run_no) + 1 : 1;
 
-    // 6) บันทึก snapshot
+    // 6) Insert
     const payload = {
       effective_date,
-      xagusd_close: xagusd,
+      xagusd_close: metal.value,
       usd_thb,
       premium_per_oz_thb: env.premiumPerOz,
       spread_buy_sell: env.spread,
@@ -117,6 +114,7 @@ export async function POST(req: Request) {
     const { error: insErr } = await supabase
       .from("price_snapshots")
       .insert(payload);
+
     if (insErr) {
       return NextResponse.json(
         { error: "INSERT_FAILED", details: insErr.message },
@@ -128,9 +126,9 @@ export async function POST(req: Request) {
       ok: true,
       effective_date,
       run_no: nextRun,
-      xagusd_close: xagusd,
+      xagusd_close: metal.value,
       usd_thb,
-      providers: { metal: "metalprice/latest", fx: providersFx },
+      providers: { metal: metal.provider, fx: fxProvider },
     });
   } catch (e: any) {
     return NextResponse.json(

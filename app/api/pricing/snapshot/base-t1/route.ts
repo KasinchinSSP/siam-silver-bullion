@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseService } from "@/lib/supabase-service";
 import { buildPricesBySku, readEnv, type ProductRow } from "@/lib/pricing";
 import { yesterdayICTISO } from "@/lib/time";
-import { getXagUsdT1 } from "@/lib/providers/metalprice";
+import { Metal } from "@/lib/providers/metal";
 import { getUsdThbT1 } from "@/lib/providers/fx";
 
 function isAuthorized(req: Request) {
@@ -27,21 +27,20 @@ export async function POST(req: Request) {
     const supabase = getSupabaseService();
     const env = readEnv();
 
-    // 1) เลือก effective_date = เมื่อวาน (ICT)
     const effective_date = yesterdayICTISO();
 
-    // 2) ดึง XAGUSD (T-1) จาก MetalpriceAPI
-    const xagusd_close = await getXagUsdT1(effective_date);
+    // 1) Metal T-1 via dispatcher
+    const metal = await Metal.t1(effective_date);
 
-    // 3) ดึง USD/THB (T-1) — ชั่วคราวใช้ MOCK
+    // 2) USDTHB T-1 (ตอนนี้ใช้ latest เป็น fallback ตาม fx.ts)
     const fx = await getUsdThbT1(effective_date);
-    const usd_thb = fx.value;
 
-    // 4) โหลดสินค้า active
+    // 3) Products
     const { data: products, error: prodErr } = await supabase
       .from("products")
       .select("sku,title,purity,weight_oz,weight_g,premium_per_oz_thb")
       .eq("status", "active");
+
     if (prodErr) {
       return NextResponse.json(
         { error: "PRODUCTS_QUERY_FAILED", details: prodErr.message },
@@ -49,15 +48,15 @@ export async function POST(req: Request) {
       );
     }
 
-    // 5) คำนวณราคาต่อ SKU
+    // 4) Build
     const pricesBySku = buildPricesBySku({
       products: (products ?? []) as ProductRow[],
-      xagusdClose: xagusd_close,
-      usdThb: usd_thb,
+      xagusdClose: metal.value,
+      usdThb: fx.value,
       env,
     });
 
-    // 6) หา run_no ล่าสุดของ effective_date นี้ (เดโม่)
+    // 5) Next run
     const { data: runs } = await supabase
       .from("price_snapshots")
       .select("run_no")
@@ -68,11 +67,11 @@ export async function POST(req: Request) {
 
     const nextRun = runs && runs.length > 0 ? Number(runs[0].run_no) + 1 : 1;
 
-    // 7) บันทึก snapshot
+    // 6) Insert
     const insertPayload = {
       effective_date,
-      xagusd_close,
-      usd_thb,
+      xagusd_close: metal.value,
+      usd_thb: fx.value,
       premium_per_oz_thb: env.premiumPerOz,
       spread_buy_sell: env.spread,
       vat_rate: env.vatRate,
@@ -87,19 +86,21 @@ export async function POST(req: Request) {
     const { error: insErr } = await supabase
       .from("price_snapshots")
       .insert(insertPayload);
-    if (insErr)
+
+    if (insErr) {
       return NextResponse.json(
         { error: "INSERT_FAILED", details: insErr.message },
         { status: 500 }
       );
+    }
 
     return NextResponse.json({
       ok: true,
       effective_date,
       run_no: nextRun,
-      xagusd_close,
-      usd_thb,
-      providers: { metal: "MetalpriceAPI/historical", fx: fx.provider },
+      xagusd_close: metal.value,
+      usd_thb: fx.value,
+      providers: { metal: metal.provider, fx: fx.provider },
     });
   } catch (e: any) {
     return NextResponse.json(

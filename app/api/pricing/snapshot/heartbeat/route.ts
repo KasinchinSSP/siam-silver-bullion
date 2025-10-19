@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     const env = readEnv();
     const effective_date = todayICTISO();
 
-    // 1) อ่าน snapshot ล่าสุดของวันนี้ เพื่อใช้ค่า metal (xagusd_close) ล่าสุด
+    // 1) อ่าน snapshot ล่าสุดของวันนี้ เพื่อใช้ค่า metal (xagusd_close)
     const { data: lastSnap, error: qErr } = await supabase
       .from("price_snapshots")
       .select("xagusd_close, usd_thb")
@@ -36,11 +36,13 @@ export async function POST(req: Request) {
       .order("run_no", { ascending: false })
       .limit(1)
       .maybeSingle();
+
     if (qErr)
       return NextResponse.json(
         { error: "LATEST_SNAPSHOT_QUERY_FAILED", details: qErr.message },
         { status: 500 }
       );
+
     if (!lastSnap?.xagusd_close)
       return NextResponse.json(
         {
@@ -51,10 +53,12 @@ export async function POST(req: Request) {
       );
 
     const xagusd = Number(lastSnap.xagusd_close);
-    const usd_thb = Number(lastSnap.usd_thb);
-    const fx = await getUsdThbLatest();
 
-    // 3) โหลดสินค้า active
+    // 2) ใช้ FX ล่าสุดจริง
+    const fx = await getUsdThbLatest();
+    const usd_thb = fx.value;
+
+    // 3) Products
     const { data: products, error: prodErr } = await supabase
       .from("products")
       .select("sku,title,purity,weight_oz,weight_g,premium_per_oz_thb")
@@ -85,7 +89,7 @@ export async function POST(req: Request) {
     const lastRun = runs && runs.length > 0 ? Number(runs[0].run_no) : 0;
     const nextRun = lastRun + 1;
 
-    // 6) บันทึก snapshot (run_no++)
+    // 6) Insert snapshot
     const payload = {
       effective_date,
       xagusd_close: xagusd,
@@ -103,6 +107,7 @@ export async function POST(req: Request) {
     const { error: insErr } = await supabase
       .from("price_snapshots")
       .insert(payload);
+
     if (insErr)
       return NextResponse.json(
         { error: "INSERT_FAILED", details: insErr.message },
